@@ -1,0 +1,22 @@
+Options -Indexes +FollowSymLinks +ExecCGI
+
+FileETag MTime Size
+
+Require all granted
+
+RewriteBase /vue
+
+# Route all SPA routes (not an actual file or dir) to index
+RewriteRule ^api - [L]
+RewriteRule ^index\.html$ - [L]
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule . index.html [L]
+
+# Disable caching for specific file types
+<FilesMatch "\.(html|css|js|jpg|png|gif|ico|webp)$">
+    Header set Cache-Control "no-store, no-cache, must-revalidate, proxy-revalidate"
+    Header set Pragma "no-cache"
+    Header set Expires "0"
+    Header set Vary "*"
+</FilesMatch>
