@@ -5,7 +5,7 @@ import { getBasePath } from '../config.js'
 const { createRouter, createWebHistory } = VueRouter
 
 export function createAppRouter() {
-    const router = createRouter({
+    return createRouter({
         history: createWebHistory(getBasePath()),
         routes: [
             {
@@ -25,6 +25,4 @@ export function createAppRouter() {
             }
         ]
     })
-
-    return router
 }
