@@ -1,7 +1,7 @@
-// components/Protected.js
-import { useAuth } from '../composables/useAuth.js';
+import { useAuth } from '../composables/useAuth.js'
+import { useErrorHandler } from '../composables/useErrorHandler.js'
 
-const { ref, onMounted } = Vue;
+const { ref, onMounted } = Vue
 
 export const Protected = {
     template: `
@@ -65,27 +65,32 @@ export const Protected = {
         </div>
     `,
     setup() {
-        const auth = useAuth();
-        const tokens = ref(null);
-        const loading = ref(false);
-        const apiResponse = ref(null);
-        const apiResponseClass = ref('');
+        const auth = useAuth()
+        const { handleError } = useErrorHandler()
+        
+        const tokens = ref(null)
+        const loading = ref(false)
+        const apiResponse = ref(null)
+        const apiResponseClass = ref('')
 
         onMounted(async () => {
-            // Get tokens with claims for display
-            tokens.value = await auth.getTokensWithClaims();
-        });
+            try {
+                tokens.value = await auth.getTokensWithClaims()
+            } catch (error) {
+                handleError(error, 'Failed to load tokens')
+            }
+        })
 
         const callApi = async () => {
-            loading.value = true;
-            apiResponse.value = null;
-            apiResponseClass.value = '';
+            loading.value = true
+            apiResponse.value = null
+            apiResponseClass.value = ''
             
             try {
-                const accessToken = await auth.getAccessToken();
+                const accessToken = await auth.getAccessToken()
                 
                 if (!accessToken) {
-                    throw new Error('No access token available');
+                    throw new Error('No access token available')
                 }
                 
                 const response = await fetch('https://api.example.com/protected-endpoint', {
@@ -94,22 +99,23 @@ export const Protected = {
                         'Authorization': `Bearer ${accessToken}`,
                         'Content-Type': 'application/json'
                     }
-                });
+                })
                 
                 if (!response.ok) {
-                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`)
                 }
                 
-                const data = await response.json();
-                apiResponse.value = JSON.stringify(data, null, 2);
-                apiResponseClass.value = 'success';
+                const data = await response.json()
+                apiResponse.value = JSON.stringify(data, null, 2)
+                apiResponseClass.value = 'success'
             } catch (error) {
-                apiResponse.value = `Error: ${error.message}`;
-                apiResponseClass.value = 'error';
+                apiResponse.value = `Error: ${error.message}`
+                apiResponseClass.value = 'error'
+                handleError(error, 'API call failed. Please check your connection and try again.')
             } finally {
-                loading.value = false;
+                loading.value = false
             }
-        };
+        }
 
         return {
             user: auth.user,
@@ -118,6 +124,6 @@ export const Protected = {
             apiResponse,
             apiResponseClass,
             callApi
-        };
+        }
     }
-};
+}

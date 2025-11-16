@@ -1,13 +1,12 @@
-// router/index.js
-import { Home } from '../components/Home.js';
-import { Protected } from '../components/Protected.js';
-import { useAuth, BASE_PATH } from '../composables/useAuth.js';
+import { Home } from '../components/Home.js'
+import { Protected } from '../components/Protected.js'
+import { getBasePath } from '../config.js'
 
-const { createRouter, createWebHistory } = VueRouter;
+const { createRouter, createWebHistory } = VueRouter
 
 export function createAppRouter() {
     const router = createRouter({
-        history: createWebHistory(BASE_PATH),
+        history: createWebHistory(getBasePath()),
         routes: [
             {
                 path: '/',
@@ -17,12 +16,15 @@ export function createAppRouter() {
                 path: '/protected',
                 component: Protected,
                 meta: { requiresAuth: true }
+            },{
+                path:'/:catchAll(.*)',
+                redirect:function(to){
+                    console.log('catch all route!',to)
+                    return {path:'/', replace:true}
+                }
             }
         ]
-    });
+    })
 
-    const auth = useAuth();
-    router.beforeEach(auth.authGuard);
-
-    return router;
+    return router
 }

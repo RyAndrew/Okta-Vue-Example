@@ -1,5 +1,4 @@
-// components/Home.js
-import { useAuth } from '../composables/useAuth.js';
+import { useAuth } from '../composables/useAuth.js'
 
 export const Home = {
     template: `
@@ -21,11 +20,11 @@ export const Home = {
         </div>
     `,
     setup() {
-        const auth = useAuth();
+        const auth = useAuth()
 
         return {
             isAuthenticated: auth.isAuthenticated,
             userFullName: auth.userFullName
-        };
+        }
     }
-};
+}

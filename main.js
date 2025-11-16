@@ -1,22 +1,21 @@
-// main.js
-import { App } from './components/App.js';
-import { createAppRouter } from './router/index.js';
+import { App } from './components/App.js'
+import { createAppRouter } from './router/index.js'
+import { useAuth } from './composables/useAuth.js'
 
-const { createApp } = Vue;
+const { createApp } = Vue
 
-// Initialize the application
-async function initializeApp() {
-    console.log('initializeApp');
+function initializeApp() {
+    console.log('Initializing App')
 
-    //bugfix for back button - prevent page cache to re-render after piv fails and you hit back
+    //prevent bfc
     document.body.onunload=function(){}
 
-    const app = createApp(App);
-    const router = createAppRouter();
+    const app = createApp(App)
+    const router = createAppRouter()
+    useAuth(router)
     
-    app.use(router);
-    app.mount('#app');
+    app.use(router)
+    app.mount('#app')
 }
 
-// Start the app
-initializeApp();
+initializeApp()
