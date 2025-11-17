@@ -11,19 +11,14 @@ let userInitiatedLogout = false
 const isAuthenticated = ref(false)
 const user = ref(null)
 const showLogoutModal = ref(false)
+const userFullName = computed(() => user?.value?.name)
 
 const { handleError } = useErrorHandler()
 
-const updateUserStateFromTokens = async () => {
+const updateUserStateFromIdToken = async () => {
     try {
-        const tokenManager = oktaAuth.tokenManager
-        const idTokenObj = await tokenManager.get('idToken')
-        
-        if (idTokenObj?.claims) {
-            user.value = idTokenObj.claims
-        } else {
-            user.value = null
-        }
+        const idTokenObj = await oktaAuth.tokenManager.get('idToken')
+        user.value = idTokenObj.claims
     } catch (error) {
         console.error('Error loading user:', error)
         user.value = null
@@ -40,9 +35,10 @@ oktaAuth.authStateManager.subscribe((authState) => {
     }
     
     if (newAuthState && !isAuthenticated.value) {
-        updateUserStateFromTokens()
+        updateUserStateFromIdToken()
     }
     
+    //if user is logged out, route back to root page
     if (isAuthenticated.value && !newAuthState && !userInitiatedLogout) {
         if (currentRouter && currentRouter.currentRoute.value.path !== '/') {
             currentRouter.push('/').then(() => {
@@ -60,15 +56,15 @@ oktaAuth.authStateManager.subscribe((authState) => {
     isAuthenticated.value = newAuthState
 })
 
+//this triggers initial auth state check
 oktaAuth.start()
 
-const userFullName = computed(() => user?.value?.name)
 
 const login = async () => {
     try {
         await oktaAuth.signInWithRedirect()
     } catch (error) {
-        handleError(error, 'Failed to initiate login. Please try again.')
+        handleError(error, 'Failed to initiate login. Please verify configuration.')
     }
 }
 
@@ -89,26 +85,19 @@ const closeModal = () => {
 }
 
 const getAccessToken = () => {
+    //returns a promise
     return oktaAuth.getAccessToken()
 }
 
-const getIdToken = () => {
-    return oktaAuth.getIdToken()
-}
-
 const getTokensWithClaims = async () => {
-    const accessToken = await oktaAuth.getAccessToken()
-    const idToken = await oktaAuth.getIdToken()
-    
-    const tokenManager = oktaAuth.tokenManager
-    const accessTokenObj = await tokenManager.get('accessToken')
-    const idTokenObj = await tokenManager.get('idToken')
+
+    const { accessToken, idToken } = await oktaAuth.tokenManager.getTokens()
     
     return {
-        accessToken: accessToken || 'No access token available',
-        idToken: idToken || 'No ID token available',
-        accessTokenClaims: accessTokenObj?.claims ? JSON.stringify(accessTokenObj.claims, null, 2) : 'No claims available',
-        idTokenClaims: idTokenObj?.claims ? JSON.stringify(idTokenObj.claims, null, 2) : 'No claims available'
+        accessToken: accessToken.accessToken,
+        idToken: idToken.idToken,
+        accessTokenClaims: JSON.stringify(accessToken.claims, null, 2),
+        idTokenClaims: JSON.stringify(idToken.claims, null, 2)
     }
 }
 
@@ -122,13 +111,21 @@ const authGuard = async (to, from) => {
         console.log('getOriginalUri:', originalUri)
 
         try {
-            const { tokens } = await oktaAuth.token.parseFromUrl()
-            oktaAuth.tokenManager.setTokens(tokens)
+            //option 1 - gets and saves tokens and redirects user
+            //await oktaAuth.handleLoginRedirect();
+
+            //option 2 - calling parse & save tokens individually then manually redirect/route
+            //const { tokens } = await oktaAuth.token.parseFromUrl()
+            //oktaAuth.tokenManager.setTokens(tokens)
+
+            //option 3 - one call for parse & save tokens then manually redirect/route
+            await oktaAuth.storeTokensFromRedirect()
             
         } catch (error) {
             //route back to root
             originalUri = false
 
+            //clear on error maybe in the future?
             //oktaAuth.transactionManager.clear()
 
             //clear auth code from url to prevent looping
@@ -147,7 +144,7 @@ const authGuard = async (to, from) => {
         if (!authenticated) {
             console.log('trying to access authenticated route', to.fullPath)
             oktaAuth.setOriginalUri( to.fullPath )
-            oktaAuth.signInWithRedirect()
+            login()
             return false
         }
     }
@@ -173,9 +170,7 @@ export function useAuth(router = null) {
         logout,
         closeModal,
         getAccessToken,
-        getIdToken,
         getTokensWithClaims,
-        authGuard,
         oktaAuth
     }
 }
