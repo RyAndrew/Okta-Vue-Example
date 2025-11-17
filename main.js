@@ -11,10 +11,11 @@ function initializeApp() {
     document.body.onunload=function(){}
 
     const app = createApp(App)
+
     const router = createAppRouter()
     useAuth(router)
-    
     app.use(router)
+
     app.mount('#app')
 }
 
