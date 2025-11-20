@@ -1,5 +1,6 @@
 import { App } from './components/App.js'
 import { createAppRouter } from './router/index.js'
+import { createAppStore } from './store/index.js'
 import { useAuth } from './composables/useAuth.js'
 
 const { createApp } = Vue
@@ -13,8 +14,12 @@ function initializeApp() {
     const app = createApp(App)
 
     const router = createAppRouter()
-    useAuth(router)
+    const store = createAppStore()
+
+    useAuth(router, store)
+
     app.use(router)
+    app.use(store)
 
     app.mount('#app')
 }

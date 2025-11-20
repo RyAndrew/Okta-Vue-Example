@@ -5,6 +5,7 @@ const { ref, computed } = Vue
 
 const oktaAuth = new OktaAuth(getOktaConfig())
 let currentRouter = null
+let currentStore = null
 let routerGuardAdded = false
 let userInitiatedLogout = false
 
@@ -19,9 +20,19 @@ const updateUserStateFromIdToken = async () => {
     try {
         const idTokenObj = await oktaAuth.tokenManager.get('idToken')
         user.value = idTokenObj.claims
+
+        // Update Vuex store if available
+        if (currentStore) {
+            currentStore.dispatch('auth/updateUser', idTokenObj.claims)
+        }
     } catch (error) {
         console.error('Error loading user:', error)
         user.value = null
+
+        // Clear user in Vuex store if available
+        if (currentStore) {
+            currentStore.dispatch('auth/updateUser', null)
+        }
     }
 }
 
@@ -29,15 +40,15 @@ oktaAuth.authStateManager.subscribe((authState) => {
     console.log('authStateManager authState!', authState)
 
     const newAuthState = authState.isAuthenticated
-    
+
     if (newAuthState && showLogoutModal.value) {
         showLogoutModal.value = false
     }
-    
+
     if (newAuthState && !isAuthenticated.value) {
         updateUserStateFromIdToken()
     }
-    
+
     //if user is logged out, route back to root page
     if (isAuthenticated.value && !newAuthState && !userInitiatedLogout) {
         if (currentRouter && currentRouter.currentRoute.value.path !== '/') {
@@ -48,12 +59,22 @@ oktaAuth.authStateManager.subscribe((authState) => {
             showLogoutModal.value = true
         }
     }
-    
+
     if (!newAuthState) {
         userInitiatedLogout = false
+
+        // Clear auth state in Vuex store if available
+        if (currentStore) {
+            currentStore.dispatch('auth/clearAuth')
+        }
     }
-    
+
     isAuthenticated.value = newAuthState
+
+    // Update Vuex store if available
+    if (currentStore) {
+        currentStore.dispatch('auth/updateAuthState', newAuthState)
+    }
 })
 
 //this triggers initial auth state check
@@ -150,15 +171,18 @@ const authGuard = async (to, from) => {
     }
 }
 
-export function useAuth(router = null) {
+export function useAuth(router = null, store = null) {
     if (router) {
         currentRouter = router
-        
+
         if(!routerGuardAdded){
             routerGuardAdded = true
             router.beforeEach(authGuard)
         }
+    }
 
+    if (store) {
+        currentStore = store
     }
 
     return {

@@ -2,6 +2,9 @@ import { useAuth } from '../composables/useAuth.js'
 import { useErrorHandler } from '../composables/useErrorHandler.js'
 import { BaseModal } from './BaseModal.js'
 
+const { useStore } = Vuex
+const { computed } = Vue
+
 export const App = {
     components: {
         BaseModal
@@ -14,7 +17,10 @@ export const App = {
                     <li><router-link to="/protected">Protected Page</router-link></li>
                     <li class="auth-buttons">
                         <button v-if="!isAuthenticated" @click="handleLogin">Login</button>
-                        <button v-else @click="handleLogout">Logout</button>
+                        <template v-else>
+                            <span v-if="userFullName" class="username">{{ userFullName }}</span>
+                            <button @click="handleLogout">Logout</button>
+                        </template>
                     </li>
                 </ul>
             </nav>
@@ -48,10 +54,15 @@ export const App = {
     setup() {
         const auth = useAuth()
         const errorHandler = useErrorHandler()
+        const store = useStore()
+
+        // Get username from Vuex store
+        const userFullName = computed(() => store.getters['auth/userFullName'])
 
         return {
             isAuthenticated: auth.isAuthenticated,
             showLogoutModal: auth.showLogoutModal,
+            userFullName,
             handleLogin: auth.login,
             handleLogout: auth.logout,
             closeModal: auth.closeModal,
